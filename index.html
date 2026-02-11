@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Store - Buy Ready-Made Code Easily</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #00BFA5 0%, #121212 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #00BFA5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Login/Signup Screen */
+        .auth-screen {
+            min-height: 100vh;
+            background: linear-gradient(180deg, #00BFA5 0%, #121212 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .auth-content {
+            text-align: center;
+            max-width: 450px;
+            width: 100%;
+        }
+
+        .logo {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .app-title {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .app-subtitle {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 50px;
+        }
+
+        .auth-card {
+            background: #1E1E1E;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            text-align: left;
+        }
+
+        .auth-card h2 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .auth-card p {
+            color: #999;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+        }
+
+        input[type="email"],
+        input[type="password"],
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            width: 100%;
+            padding: 14px 14px 14px 40px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #00BFA5;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: #00BFA5;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #00a88e;
+        }
+
+        .btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+
+        .auth-link {
+            margin-top: 16px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .auth-link a {
+            color: #00BFA5;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .error-message {
+            background: #d32f2f;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .success-message {
+            background: #388e3c;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        /* Home Screen */
+        .app-header {
+            background: #1E1E1E;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .app-header h1 {
+            font-size: 24px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .user-info-card {
+            background: #1E1E1E;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            background: #00BFA5;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            margin-right: 12px;
+        }
+
+        .user-details {
+            flex: 1;
+        }
+
+        .user-label {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .user-email {
+            font-size: 14px;
+            font-weight: bold;
+            color: #00BFA5;
+        }
+
+        .code-list {
+            margin: 20px 0;
+        }
+
+        .code-card {
+            background: #1E1E1E;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .code-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .code-icon {
+            font-size: 28px;
+            color: #00BFA5;
+            margin-right: 12px;
+        }
+
+        .code-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .code-price {
+            display: inline-block;
+            background: rgba(0, 191, 165, 0.2);
+            color: #00BFA5;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .order-btn {
+            width: 100%;
+            padding: 14px;
+            background: #00BFA5;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.3s;
+        }
+
+        .order-btn:hover {
+            background: #00a88e;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            color: #555;
+            margin-bottom: 16px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-size: 12px;
+        }
+
+        /* Order Screen */
+        .order-content {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .selected-code-card {
+            background: #1E1E1E;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 24px 0 12px 0;
+        }
+
+        .order-message-box {
+            background: #1E1E1E;
+            border: 1px solid #444;
+            border-radius: 12px;
+            padding: 16px;
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            margin-bottom: 24px;
+        }
+
+        .social-btn {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .social-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .social-btn.instagram {
+            background: rgba(225, 48, 108, 0.1);
+            border: 1px solid rgba(225, 48, 108, 0.3);
+        }
+
+        .social-btn.telegram {
+            background: rgba(0, 136, 204, 0.1);
+            border: 1px solid rgba(0, 136, 204, 0.3);
+        }
+
+        .social-icon {
+            font-size: 28px;
+            margin-right: 16px;
+        }
+
+        .social-btn.instagram .social-icon {
+            color: #E1306C;
+        }
+
+        .social-btn.telegram .social-icon {
+            color: #0088CC;
+        }
+
+        .social-label {
+            flex: 1;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .social-btn.instagram .social-label {
+            color: #E1306C;
+        }
+
+        .social-btn.telegram .social-label {
+            color: #0088CC;
+        }
+
+        .info-box {
+            background: rgba(255, 152, 0, 0.1);
+            border: 1px solid #ff9800;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-top: 24px;
+        }
+
+        .info-icon {
+            color: #ff9800;
+            font-size: 20px;
+            margin-top: 2px;
+        }
+
+        .info-text {
+            color: #ff9800;
+            font-size: 12px;
+        }
+
+        /* Admin Panel */
+        .admin-card {
+            background: #1E1E1E;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+
+        .admin-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .admin-icon-box {
+            width: 52px;
+            height: 52px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 16px;
+        }
+
+        .admin-icon-box.green {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+        }
+
+        .admin-icon-box.blue {
+            background: rgba(33, 150, 243, 0.2);
+            color: #2196F3;
+        }
+
+        .admin-details {
+            flex: 1;
+        }
+
+        .admin-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .admin-subtitle {
+            font-size: 12px;
+            color: #999;
+        }
+
+        textarea {
+            padding: 14px;
+            resize: vertical;
+            min-height: 150px;
+        }
+
+        .expansion-tile {
+            background: #1E1E1E;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .expansion-header {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .expansion-header:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .expansion-content {
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.2);
+            display: none;
+        }
+
+        .expansion-content.open {
+            display: block;
+        }
+
+        .code-content-box {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            margin: 8px 0 12px 0;
+        }
+
+        .delete-btn {
+            width: 100%;
+            padding: 14px;
+            background: #d32f2f;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .delete-btn:hover {
+            background: #b71c1c;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.open {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1E1E1E;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            flex: 1;
+            font-size: 20px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .btn-secondary {
+            background: #555;
+        }
+
+        .btn-secondary:hover {
+            background: #666;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .auth-card {
+                padding: 24px;
+            }
+
+            .app-title {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Login Screen -->
+    <div id="loginScreen" class="auth-screen hidden">
+        <div class="auth-content">
+            <div class="logo">💻</div>
+            <h1 class="app-title">Code Store</h1>
+            <p class="app-subtitle">Buy Ready-Made Code Easily</p>
+
+            <div class="auth-card">
+                <h2>Welcome Back</h2>
+                <p>Login to your account</p>
+
+                <div id="loginError"></div>
+
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">📧</span>
+                            <input type="email" id="loginEmail" required placeholder="Enter your email">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Password</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">🔒</span>
+                            <input type="password" id="loginPassword" required placeholder="Enter your password">
+                            <button type="button" class="password-toggle" onclick="togglePassword('loginPassword')">👁️</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn">Login</button>
+                </form>
+
+                <div class="auth-link">
+                    Don't have an account? <a href="#" onclick="showSignup()">Sign Up</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signup Screen -->
+    <div id="signupScreen" class="auth-screen hidden">
+        <div class="auth-content">
+            <div class="logo">💻</div>
+            <h1 class="app-title">Create Account</h1>
+
+            <div class="auth-card">
+                <h2>Join Code Store</h2>
+                <p>Create your account to get started</p>
+
+                <div id="signupError"></div>
+
+                <form id="signupForm">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">📧</span>
+                            <input type="email" id="signupEmail" required placeholder="Enter your email">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Password</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">🔒</span>
+                            <input type="password" id="signupPassword" required placeholder="Enter your password">
+                            <button type="button" class="password-toggle" onclick="togglePassword('signupPassword')">👁️</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Confirm Password</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">🔒</span>
+                            <input type="password" id="signupConfirmPassword" required placeholder="Confirm your password">
+                            <button type="button" class="password-toggle" onclick="togglePassword('signupConfirmPassword')">👁️</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn">Sign Up</button>
+                </form>
+
+                <div class="auth-link">
+                    Already have an account? <a href="#" onclick="showLogin()">Login</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Home Screen -->
+    <div id="homeScreen" class="hidden">
+        <header class="app-header">
+            <h1>Code Store</h1>
+            <div class="header-actions">
+                <button class="icon-btn" onclick="showAdminLogin()" title="Admin Panel">⚙️</button>
+            </div>
+        </header>
+
+        <div class="container">
+            <div class="user-info-card">
+                <div class="user-avatar">👤</div>
+                <div class="user-details">
+                    <div class="user-label">Logged in as:</div>
+                    <div class="user-email" id="userEmail"></div>
+                </div>
+            </div>
+
+            <div id="codeList" class="code-list"></div>
+
+            <div class="footer">
+                <div>Real-time sync enabled</div>
+                <div style="margin-top: 4px; font-size: 10px;">v2.0.0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Screen -->
+    <div id="orderScreen" class="hidden">
+        <header class="app-header">
+            <button class="icon-btn" onclick="showHome()">◀️</button>
+            <h1>Order Details</h1>
+            <div></div>
+        </header>
+
+        <div class="order-content">
+            <div class="selected-code-card">
+                <div style="font-size: 14px; color: #999; margin-bottom: 8px;">Selected Code Package</div>
+                <div class="code-header">
+                    <div class="code-icon">📁</div>
+                    <div class="code-title" id="orderTitle"></div>
+                </div>
+                <div style="margin-top: 16px;">
+                    <span style="font-size: 16px;">Price: </span>
+                    <span style="font-size: 22px; font-weight: bold; color: #00BFA5;" id="orderPrice"></span>
+                </div>
+            </div>
+
+            <h2 class="section-title">Order Message</h2>
+            <div class="order-message-box" id="orderMessage"></div>
+
+            <h2 class="section-title">Contact Us to Order</h2>
+
+            <a href="https://www.instagram.com/jellyofficer?igsh=MWJ3OGdwb3MyNzdkZA==" target="_blank" class="social-btn instagram">
+                <div class="social-icon">📷</div>
+                <div class="social-label">Order via Instagram</div>
+                <div style="color: #E1306C;">▶</div>
+            </a>
+
+            <a href="https://t.me/jellyofficer" target="_blank" class="social-btn telegram">
+                <div class="social-icon">📤</div>
+                <div class="social-label">Order via Telegram</div>
+                <div style="color: #0088CC;">▶</div>
+            </a>
+
+            <div class="info-box">
+                <div class="info-icon">ℹ️</div>
+                <div class="info-text">Copy the order message above and send it to us via Instagram or Telegram</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="adminPanel" class="hidden">
+        <header class="app-header">
+            <button class="icon-btn" onclick="showHome()">◀️</button>
+            <h1>Admin Panel</h1>
+            <div></div>
+        </header>
+
+        <div class="container">
+            <div class="admin-card" onclick="showAddCode()">
+                <div class="admin-icon-box green">
+                    <div style="font-size: 28px;">➕</div>
+                </div>
+                <div class="admin-details">
+                    <div class="admin-title">Add New Code Package</div>
+                    <div class="admin-subtitle">Upload new code to the store</div>
+                </div>
+                <div>▶</div>
+            </div>
+
+            <div class="admin-card" onclick="showViewCodes()">
+                <div class="admin-icon-box blue">
+                    <div style="font-size: 28px;">📂</div>
+                </div>
+                <div class="admin-details">
+                    <div class="admin-title">View All Code Packages</div>
+                    <div class="admin-subtitle" id="packageCount">0 packages available</div>
+                </div>
+                <div>▶</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Code Screen -->
+    <div id="addCodeScreen" class="hidden">
+        <header class="app-header">
+            <button class="icon-btn" onclick="showAdminPanel()">◀️</button>
+            <h1>Add New Code Package</h1>
+            <div></div>
+        </header>
+
+        <div class="container" style="max-width: 600px;">
+            <div id="addCodeMessage"></div>
+
+            <form id="addCodeForm">
+                <div class="form-group">
+                    <label>Code Package Title</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">📝</span>
+                        <input type="text" id="codeTitle" required placeholder="e.g., Flutter Login System">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Code Content / Description</label>
+                    <textarea id="codeContent" required placeholder="Enter code or description..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Price</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">💲</span>
+                        <input type="number" id="codePrice" required placeholder="e.g., 99">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn">💾 Save Code Package</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Codes Screen -->
+    <div id="viewCodesScreen" class="hidden">
+        <header class="app-header">
+            <button class="icon-btn" onclick="showAdminPanel()">◀️</button>
+            <h1>All Code Packages</h1>
+            <div></div>
+        </header>
+
+        <div class="container">
+            <div id="adminCodeList"></div>
+        </div>
+    </div>
+
+    <!-- Admin Login Modal -->
+    <div id="adminLoginModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🔐 Admin Login</h3>
+            </div>
+
+            <div id="adminLoginError"></div>
+
+            <div class="form-group">
+                <label>Password</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">🔒</span>
+                    <input type="password" id="adminPassword" placeholder="Enter admin password">
+                    <button type="button" class="password-toggle" onclick="togglePassword('adminPassword')">👁️</button>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeAdminLogin()">Cancel</button>
+                <button class="btn" style="flex: 1;" onclick="adminLogin()">Login</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Dialog -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <h3 id="confirmTitle">Confirm</h3>
+            <p id="confirmMessage" style="margin: 16px 0; color: #ccc;"></p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeConfirm()">Cancel</button>
+                <button class="btn" style="flex: 1; background: #d32f2f;" id="confirmBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase Configuration
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { 
+            getDatabase, 
+            ref, 
+            set, 
+            push, 
+            onValue, 
+            remove,
+            serverTimestamp 
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+
+        const firebaseConfig = {
+            databaseURL: "https://codejelly-add9c-default-rtdb.firebaseio.com/"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // Global state
+        let currentUser = null;
+        let currentOrderCode = null;
+        let confirmCallback = null;
+
+        // Make functions globally available
+        window.togglePassword = togglePassword;
+        window.showLogin = showLogin;
+        window.showSignup = showSignup;
+        window.showHome = showHome;
+        window.showOrder = showOrder;
+        window.showAdminLogin = showAdminLogin;
+        window.closeAdminLogin = closeAdminLogin;
+        window.adminLogin = adminLogin;
+        window.showAdminPanel = showAdminPanel;
+        window.showAddCode = showAddCode;
+        window.showViewCodes = showViewCodes;
+        window.logout = logout;
+        window.closeConfirm = closeConfirm;
+        window.deleteCode = deleteCode;
+        window.toggleExpansion = toggleExpansion;
+
+        // Initialize app - Load home directly
+        setTimeout(() => {
+            document.getElementById('loadingScreen').classList.add('hidden');
+            currentUser = { email: 'Guest User' };
+            document.getElementById('userEmail').textContent = 'Guest User';
+            showHome();
+            loadCodePackages();
+        }, 500);
+
+        // Toggle password visibility
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        // Show/Hide screens
+        function hideAllScreens() {
+            document.querySelectorAll('.auth-screen, #homeScreen, #orderScreen, #adminPanel, #addCodeScreen, #viewCodesScreen').forEach(el => {
+                el.classList.add('hidden');
+            });
+        }
+
+        function showLogin() {
+            hideAllScreens();
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('loginError').innerHTML = '';
+        }
+
+        function showSignup() {
+            hideAllScreens();
+            document.getElementById('signupScreen').classList.remove('hidden');
+            document.getElementById('signupEmail').value = '';
+            document.getElementById('signupPassword').value = '';
+            document.getElementById('signupConfirmPassword').value = '';
+            document.getElementById('signupError').innerHTML = '';
+        }
+
+        function showHome() {
+            hideAllScreens();
+            document.getElementById('homeScreen').classList.remove('hidden');
+        }
+
+        function showOrder(code) {
+            currentOrderCode = code;
+            hideAllScreens();
+            document.getElementById('orderScreen').classList.remove('hidden');
+            document.getElementById('orderTitle').textContent = code.title;
+            document.getElementById('orderPrice').textContent = `$${code.price}`;
+            
+            const orderMessage = `Order Request
+Email: Guest User
+Code Package: ${code.title}
+Price: $${code.price}`;
+            
+            document.getElementById('orderMessage').textContent = orderMessage;
+        }
+
+        function showAdminPanel() {
+            hideAllScreens();
+            document.getElementById('adminPanel').classList.remove('hidden');
+            updatePackageCount();
+        }
+
+        function showAddCode() {
+            hideAllScreens();
+            document.getElementById('addCodeScreen').classList.remove('hidden');
+            document.getElementById('addCodeForm').reset();
+            document.getElementById('addCodeMessage').innerHTML = '';
+        }
+
+        function showViewCodes() {
+            hideAllScreens();
+            document.getElementById('viewCodesScreen').classList.remove('hidden');
+            loadAdminCodes();
+        }
+
+        // Login Form - Disabled
+
+        // Signup Form - Disabled
+
+        // Logout - Disabled
+        async function logout() {
+            // No logout needed
+        }
+
+        // Load code packages
+        function loadCodePackages() {
+            const codesRef = ref(database, 'code_packages');
+            
+            onValue(codesRef, (snapshot) => {
+                const codeList = document.getElementById('codeList');
+                codeList.innerHTML = '';
+                
+                if (!snapshot.exists()) {
+                    codeList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📦</div>
+                            <div>No code packages available yet</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const codes = [];
+                snapshot.forEach((childSnapshot) => {
+                    codes.push({
+                        id: childSnapshot.key,
+                        ...childSnapshot.val()
+                    });
+                });
+                
+                codes.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                
+                codes.forEach(code => {
+                    const card = document.createElement('div');
+                    card.className = 'code-card';
+                    card.innerHTML = `
+                        <div class="code-header">
+                            <div class="code-icon">📁</div>
+                            <div class="code-title">${code.title}</div>
+                        </div>
+                        <div class="code-price">$${code.price}</div>
+                        <button class="order-btn" onclick="showOrder(${JSON.stringify(code).replace(/"/g, '&quot;')})">
+                            🛒 Order Now
+                        </button>
+                    `;
+                    codeList.appendChild(card);
+                });
+            });
+        }
+
+        // Admin Login
+        function showAdminLogin() {
+            document.getElementById('adminLoginModal').classList.add('open');
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('adminLoginError').innerHTML = '';
+        }
+
+        function closeAdminLogin() {
+            document.getElementById('adminLoginModal').classList.remove('open');
+        }
+
+        function adminLogin() {
+            const password = document.getElementById('adminPassword').value;
+            const errorDiv = document.getElementById('adminLoginError');
+            
+            if (password === '308580') {
+                closeAdminLogin();
+                showAdminPanel();
+            } else {
+                errorDiv.innerHTML = '<div class="error-message">Incorrect password</div>';
+            }
+        }
+
+        // Add Code Form
+        document.getElementById('addCodeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const title = document.getElementById('codeTitle').value.trim();
+            const content = document.getElementById('codeContent').value.trim();
+            const price = document.getElementById('codePrice').value.trim();
+            const messageDiv = document.getElementById('addCodeMessage');
+            
+            try {
+                const codesRef = ref(database, 'code_packages');
+                const newCodeRef = push(codesRef);
+                
+                await set(newCodeRef, {
+                    title: title,
+                    codeText: content,
+                    price: price,
+                    timestamp: Date.now()
+                });
+                
+                messageDiv.innerHTML = '<div class="success-message">Code package added successfully!</div>';
+                document.getElementById('addCodeForm').reset();
+                
+                setTimeout(() => {
+                    showAdminPanel();
+                }, 1500);
+            } catch (error) {
+                messageDiv.innerHTML = `<div class="error-message">Error: ${error.message}</div>`;
+            }
+        });
+
+        // Load admin codes
+        function loadAdminCodes() {
+            const codesRef = ref(database, 'code_packages');
+            
+            onValue(codesRef, (snapshot) => {
+                const adminList = document.getElementById('adminCodeList');
+                adminList.innerHTML = '';
+                
+                if (!snapshot.exists()) {
+                    adminList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📦</div>
+                            <div>No code packages added yet</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const codes = [];
+                snapshot.forEach((childSnapshot) => {
+                    codes.push({
+                        id: childSnapshot.key,
+                        ...childSnapshot.val()
+                    });
+                });
+                
+                codes.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                
+                codes.forEach(code => {
+                    const tile = document.createElement('div');
+                    tile.className = 'expansion-tile';
+                    tile.innerHTML = `
+                        <div class="expansion-header" onclick="toggleExpansion('${code.id}')">
+                            <div class="code-icon">📁</div>
+                            <div style="flex: 1; margin-left: 12px;">
+                                <div class="code-title">${code.title}</div>
+                                <div style="color: #00BFA5; font-size: 14px;">Price: $${code.price}</div>
+                            </div>
+                            <div id="arrow-${code.id}">▼</div>
+                        </div>
+                        <div class="expansion-content" id="content-${code.id}">
+                            <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px;">Code Content:</div>
+                            <div class="code-content-box">${code.codeText}</div>
+                            <button class="delete-btn" onclick="deleteCode('${code.id}')">
+                                🗑️ Delete Package
+                            </button>
+                        </div>
+                    `;
+                    adminList.appendChild(tile);
+                });
+            });
+        }
+
+        function toggleExpansion(id) {
+            const content = document.getElementById(`content-${id}`);
+            const arrow = document.getElementById(`arrow-${id}`);
+            
+            if (content.classList.contains('open')) {
+                content.classList.remove('open');
+                arrow.textContent = '▼';
+            } else {
+                content.classList.add('open');
+                arrow.textContent = '▲';
+            }
+        }
+
+        // Delete code
+        async function deleteCode(id) {
+            const confirmed = await showConfirm('Delete Code Package', 'Are you sure you want to delete this code package?');
+            
+            if (confirmed) {
+                try {
+                    const codeRef = ref(database, `code_packages/${id}`);
+                    await remove(codeRef);
+                } catch (error) {
+                    alert('Error deleting code: ' + error.message);
+                }
+            }
+        }
+
+        // Update package count
+        function updatePackageCount() {
+            const codesRef = ref(database, 'code_packages');
+            
+            onValue(codesRef, (snapshot) => {
+                const count = snapshot.exists() ? snapshot.size : 0;
+                document.getElementById('packageCount').textContent = `${count} packages available`;
+            }, { onlyOnce: true });
+        }
+
+        // Confirm dialog
+        function showConfirm(title, message) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('confirmModal');
+                document.getElementById('confirmTitle').textContent = title;
+                document.getElementById('confirmMessage').textContent = message;
+                
+                const confirmBtn = document.getElementById('confirmBtn');
+                const newConfirmBtn = confirmBtn.cloneNode(true);
+                confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+                
+                newConfirmBtn.onclick = () => {
+                    modal.classList.remove('open');
+                    resolve(true);
+                };
+                
+                confirmCallback = resolve;
+                modal.classList.add('open');
+            });
+        }
+
+        function closeConfirm() {
+            document.getElementById('confirmModal').classList.remove('open');
+            if (confirmCallback) {
+                confirmCallback(false);
+                confirmCallback = null;
+            }
+        }
+    </script>
+</body>
+</html>
