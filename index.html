@@ -619,6 +619,8 @@
             font-size: 12px;
             white-space: pre-wrap;
             margin: 8px 0 12px 0;
+            max-height: 300px;
+            overflow-y: auto;
         }
 
         .delete-btn {
@@ -742,6 +744,39 @@
 
         .hidden {
             display: none !important;
+        }
+
+        .connection-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1E1E1E;
+            padding: 12px 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            font-size: 12px;
+            z-index: 1000;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4CAF50;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.disconnected {
+            background: #d32f2f;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
 
         @media (max-width: 768px) {
@@ -884,7 +919,7 @@
 
             <div class="footer">
                 <div>🔄 Real-time Firebase sync enabled</div>
-                <div style="margin-top: 4px; font-size: 10px;">v3.0.0</div>
+                <div style="margin-top: 4px; font-size: 10px;">v3.0.1</div>
             </div>
         </div>
     </div>
@@ -1117,14 +1152,26 @@
         </div>
     </div>
 
+    <!-- Connection Status -->
+    <div class="connection-status" id="connectionStatus">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Connected</span>
+    </div>
+
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <script>
-        // Firebase Configuration
+        // Firebase Configuration - COMPLETE CONFIG WITH API KEY
         const firebaseConfig = {
-            databaseURL: "https://codejelly-add9c-default-rtdb.firebaseio.com/"
+            apiKey: "AIzaSyDpMn8_OQxOY9l7rKr-yG4cYw8qxQZ8gLo",
+            authDomain: "codejelly-add9c.firebaseapp.com",
+            databaseURL: "https://codejelly-add9c-default-rtdb.firebaseio.com",
+            projectId: "codejelly-add9c",
+            storageBucket: "codejelly-add9c.firebasestorage.app",
+            messagingSenderId: "999806556387",
+            appId: "1:999806556387:web:d4a9f4db8ee6b7e2c3f6f8"
         };
 
         // Initialize Firebase
@@ -1136,6 +1183,7 @@
         let currentOrderCode = null;
         let confirmCallback = null;
         let userUID = null;
+        let isConnected = false;
 
         // Make functions globally available
         window.togglePassword = togglePassword;
@@ -1156,6 +1204,26 @@
         window.deleteCode = deleteCode;
         window.toggleExpansion = toggleExpansion;
 
+        // Monitor connection status
+        const connectedRef = database.ref('.info/connected');
+        connectedRef.on('value', (snapshot) => {
+            isConnected = snapshot.val() === true;
+            updateConnectionStatus();
+        });
+
+        function updateConnectionStatus() {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            
+            if (isConnected) {
+                statusDot.classList.remove('disconnected');
+                statusText.textContent = 'Connected';
+            } else {
+                statusDot.classList.add('disconnected');
+                statusText.textContent = 'Disconnected';
+            }
+        }
+
         // Generate or get UID
         function getOrCreateUID() {
             let uid = localStorage.getItem('device_uid');
@@ -1168,6 +1236,8 @@
                 database.ref('uids/' + uid).set({
                     uid: uid,
                     timestamp: Date.now()
+                }).catch(error => {
+                    console.error('Error saving UID:', error);
                 });
             }
             return uid;
@@ -1188,25 +1258,38 @@
         function setupFirebaseListeners() {
             // Listen for code packages changes
             database.ref('code_packages').on('value', (snapshot) => {
-                loadCodePackages();
+                if (!document.getElementById('homeScreen').classList.contains('hidden')) {
+                    loadCodePackages();
+                }
+                if (!document.getElementById('viewCodesScreen').classList.contains('hidden')) {
+                    loadAdminCodes();
+                }
+                if (!document.getElementById('adminPanel').classList.contains('hidden')) {
+                    updatePackageCount();
+                }
+                if (!document.getElementById('orderUIDScreen').classList.contains('hidden')) {
+                    loadCodeCheckboxes();
+                }
             });
 
             // Listen for UID orders changes
             database.ref('uid_orders').on('value', (snapshot) => {
-                if (document.getElementById('homeScreen').classList.contains('hidden') === false) {
+                if (!document.getElementById('homeScreen').classList.contains('hidden')) {
                     loadCodePackages();
                 }
             });
 
             // Listen for UIDs changes
             database.ref('uids').on('value', (snapshot) => {
-                if (document.getElementById('viewUIDsScreen').classList.contains('hidden') === false) {
+                if (!document.getElementById('viewUIDsScreen').classList.contains('hidden')) {
                     loadAllUIDs();
                 }
-                if (document.getElementById('adminPanel').classList.contains('hidden') === false) {
+                if (!document.getElementById('adminPanel').classList.contains('hidden')) {
                     updateUIDCount();
                 }
             });
+
+            console.log('✅ Firebase listeners setup complete - Live updates enabled');
         }
 
         // Toggle password visibility
@@ -1299,18 +1382,6 @@ Price: $${code.price}`;
             // No logout needed
         }
 
-        // Check if code is free for user
-        async function isCodeFreeForUser(codeId) {
-            try {
-                const snapshot = await database.ref('uid_orders/' + userUID).once('value');
-                const userFreeCodeIds = snapshot.val() || [];
-                return userFreeCodeIds.includes(codeId);
-            } catch (error) {
-                console.error('Error checking free code:', error);
-                return false;
-            }
-        }
-
         // Load code packages from Firebase
         async function loadCodePackages() {
             try {
@@ -1342,16 +1413,16 @@ Price: $${code.price}`;
                     card.innerHTML = `
                         <div class="code-header">
                             <div class="code-icon">${isFree ? '🎁' : '📁'}</div>
-                            <div class="code-title">${code.title}</div>
+                            <div class="code-title">${escapeHtml(code.title)}</div>
                         </div>
                         <div class="code-price ${isFree ? 'free' : ''}">${isFree ? 'FREE' : '$' + code.price}</div>
                         ${isFree ? `
-                            <div class="code-content-box">${code.codeText}</div>
+                            <div class="code-content-box">${escapeHtml(code.codeText)}</div>
                             <div style="padding: 12px; background: rgba(76, 175, 80, 0.1); border-radius: 8px; color: #4CAF50; text-align: center; font-size: 14px;">
                                 ✅ You have this code for free!
                             </div>
                         ` : `
-                            <button class="order-btn" onclick="showOrder(${JSON.stringify(code).replace(/"/g, '&quot;')})">
+                            <button class="order-btn" onclick='showOrder(${JSON.stringify(code)})'>
                                 🛒 Order Now
                             </button>
                         `}
@@ -1360,7 +1431,20 @@ Price: $${code.price}`;
                 }
             } catch (error) {
                 console.error('Error loading code packages:', error);
+                document.getElementById('codeList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">❌</div>
+                        <div>Error loading packages: ${error.message}</div>
+                    </div>
+                `;
             }
+        }
+
+        // Helper function to escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         // Admin Login
@@ -1395,6 +1479,11 @@ Price: $${code.price}`;
             const price = document.getElementById('codePrice').value.trim();
             const messageDiv = document.getElementById('addCodeMessage');
             
+            if (!title || !content || !price) {
+                messageDiv.innerHTML = '<div class="error-message">All fields are required</div>';
+                return;
+            }
+            
             try {
                 const newCode = {
                     id: Date.now().toString(),
@@ -1407,14 +1496,15 @@ Price: $${code.price}`;
                 // Save to Firebase
                 await database.ref('code_packages/' + newCode.id).set(newCode);
                 
-                messageDiv.innerHTML = '<div class="success-message">Code package added successfully!</div>';
+                messageDiv.innerHTML = '<div class="success-message">✅ Code package added successfully!</div>';
                 document.getElementById('addCodeForm').reset();
                 
                 setTimeout(() => {
                     showAdminPanel();
                 }, 1500);
             } catch (error) {
-                messageDiv.innerHTML = `<div class="error-message">Error: ${error.message}</div>`;
+                console.error('Error adding code:', error);
+                messageDiv.innerHTML = `<div class="error-message">❌ Error: ${error.message}</div>`;
             }
         });
 
@@ -1445,14 +1535,14 @@ Price: $${code.price}`;
                         <div class="expansion-header" onclick="toggleExpansion('${code.id}')">
                             <div class="code-icon">📁</div>
                             <div style="flex: 1; margin-left: 12px;">
-                                <div class="code-title">${code.title}</div>
+                                <div class="code-title">${escapeHtml(code.title)}</div>
                                 <div style="color: #00BFA5; font-size: 14px;">Price: $${code.price}</div>
                             </div>
                             <div id="arrow-${code.id}">▼</div>
                         </div>
                         <div class="expansion-content" id="content-${code.id}">
                             <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px;">Code Content:</div>
-                            <div class="code-content-box">${code.codeText}</div>
+                            <div class="code-content-box">${escapeHtml(code.codeText)}</div>
                             <button class="delete-btn" onclick="deleteCode('${code.id}')">
                                 🗑️ Delete Package
                             </button>
@@ -1462,6 +1552,12 @@ Price: $${code.price}`;
                 });
             } catch (error) {
                 console.error('Error loading admin codes:', error);
+                document.getElementById('adminCodeList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">❌</div>
+                        <div>Error loading codes: ${error.message}</div>
+                    </div>
+                `;
             }
         }
 
@@ -1485,7 +1581,7 @@ Price: $${code.price}`;
             if (confirmed) {
                 try {
                     await database.ref('code_packages/' + id).remove();
-                    loadAdminCodes();
+                    // Live update will handle UI refresh automatically
                 } catch (error) {
                     alert('Error deleting code: ' + error.message);
                 }
@@ -1513,7 +1609,7 @@ Price: $${code.price}`;
                     item.innerHTML = `
                         <input type="checkbox" id="code-${code.id}" value="${code.id}">
                         <label class="checkbox-label" for="code-${code.id}">
-                            <div style="font-weight: bold;">${code.title}</div>
+                            <div style="font-weight: bold;">${escapeHtml(code.title)}</div>
                             <div style="font-size: 12px; color: #999;">Price: $${code.price}</div>
                         </label>
                     `;
@@ -1563,15 +1659,15 @@ Price: $${code.price}`;
                     timestamp: Date.now()
                 });
                 
-                messageDiv.innerHTML = '<div class="success-message">Free codes assigned successfully to UID: ' + uid + '</div>';
+                messageDiv.innerHTML = '<div class="success-message">✅ Free codes assigned successfully to UID: ' + uid + '</div>';
                 document.getElementById('orderUIDForm').reset();
-                loadCodeCheckboxes();
                 
                 setTimeout(() => {
                     showAdminPanel();
                 }, 2000);
             } catch (error) {
-                messageDiv.innerHTML = `<div class="error-message">Error: ${error.message}</div>`;
+                console.error('Error assigning codes:', error);
+                messageDiv.innerHTML = `<div class="error-message">❌ Error: ${error.message}</div>`;
             }
         });
 
@@ -1586,7 +1682,7 @@ Price: $${code.price}`;
                 const uidsObj = uidsSnapshot.val() || {};
                 const ordersObj = ordersSnapshot.val() || {};
                 
-                const allUIDs = Object.keys(uidsObj);
+                const allUIDs = Object.keys(uidsObj).sort();
                 const uidListDiv = document.getElementById('uidList');
                 uidListDiv.innerHTML = '';
                 
