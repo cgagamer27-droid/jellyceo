@@ -944,25 +944,7 @@
     </div>
 
     <script type="module">
-        // Firebase Configuration
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-        import { 
-            getDatabase, 
-            ref, 
-            set, 
-            push, 
-            onValue, 
-            remove,
-            serverTimestamp 
-        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
-
-        const firebaseConfig = {
-            databaseURL: "https://codejelly-add9c-default-rtdb.firebaseio.com/"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
+        // No Firebase needed - using localStorage
 
         // Global state
         let currentUser = null;
@@ -1073,49 +1055,36 @@ Price: $${code.price}`;
             // No logout needed
         }
 
-        // Load code packages
+        // Load code packages from localStorage
         function loadCodePackages() {
-            const codesRef = ref(database, 'code_packages');
+            const codes = JSON.parse(localStorage.getItem('code_packages') || '[]');
+            const codeList = document.getElementById('codeList');
+            codeList.innerHTML = '';
             
-            onValue(codesRef, (snapshot) => {
-                const codeList = document.getElementById('codeList');
-                codeList.innerHTML = '';
-                
-                if (!snapshot.exists()) {
-                    codeList.innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-icon">📦</div>
-                            <div>No code packages available yet</div>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                const codes = [];
-                snapshot.forEach((childSnapshot) => {
-                    codes.push({
-                        id: childSnapshot.key,
-                        ...childSnapshot.val()
-                    });
-                });
-                
-                codes.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                
-                codes.forEach(code => {
-                    const card = document.createElement('div');
-                    card.className = 'code-card';
-                    card.innerHTML = `
-                        <div class="code-header">
-                            <div class="code-icon">📁</div>
-                            <div class="code-title">${code.title}</div>
-                        </div>
-                        <div class="code-price">$${code.price}</div>
-                        <button class="order-btn" onclick="showOrder(${JSON.stringify(code).replace(/"/g, '&quot;')})">
-                            🛒 Order Now
-                        </button>
-                    `;
-                    codeList.appendChild(card);
-                });
+            if (codes.length === 0) {
+                codeList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📦</div>
+                        <div>No code packages available yet</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            codes.forEach(code => {
+                const card = document.createElement('div');
+                card.className = 'code-card';
+                card.innerHTML = `
+                    <div class="code-header">
+                        <div class="code-icon">📁</div>
+                        <div class="code-title">${code.title}</div>
+                    </div>
+                    <div class="code-price">$${code.price}</div>
+                    <button class="order-btn" onclick="showOrder(${JSON.stringify(code).replace(/"/g, '&quot;')})">
+                        🛒 Order Now
+                    </button>
+                `;
+                codeList.appendChild(card);
             });
         }
 
@@ -1152,15 +1121,18 @@ Price: $${code.price}`;
             const messageDiv = document.getElementById('addCodeMessage');
             
             try {
-                const codesRef = ref(database, 'code_packages');
-                const newCodeRef = push(codesRef);
+                const codes = JSON.parse(localStorage.getItem('code_packages') || '[]');
                 
-                await set(newCodeRef, {
+                const newCode = {
+                    id: Date.now().toString(),
                     title: title,
                     codeText: content,
                     price: price,
                     timestamp: Date.now()
-                });
+                };
+                
+                codes.unshift(newCode);
+                localStorage.setItem('code_packages', JSON.stringify(codes));
                 
                 messageDiv.innerHTML = '<div class="success-message">Code package added successfully!</div>';
                 document.getElementById('addCodeForm').reset();
@@ -1175,54 +1147,41 @@ Price: $${code.price}`;
 
         // Load admin codes
         function loadAdminCodes() {
-            const codesRef = ref(database, 'code_packages');
+            const codes = JSON.parse(localStorage.getItem('code_packages') || '[]');
+            const adminList = document.getElementById('adminCodeList');
+            adminList.innerHTML = '';
             
-            onValue(codesRef, (snapshot) => {
-                const adminList = document.getElementById('adminCodeList');
-                adminList.innerHTML = '';
-                
-                if (!snapshot.exists()) {
-                    adminList.innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-icon">📦</div>
-                            <div>No code packages added yet</div>
+            if (codes.length === 0) {
+                adminList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📦</div>
+                        <div>No code packages added yet</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            codes.forEach(code => {
+                const tile = document.createElement('div');
+                tile.className = 'expansion-tile';
+                tile.innerHTML = `
+                    <div class="expansion-header" onclick="toggleExpansion('${code.id}')">
+                        <div class="code-icon">📁</div>
+                        <div style="flex: 1; margin-left: 12px;">
+                            <div class="code-title">${code.title}</div>
+                            <div style="color: #00BFA5; font-size: 14px;">Price: $${code.price}</div>
                         </div>
-                    `;
-                    return;
-                }
-                
-                const codes = [];
-                snapshot.forEach((childSnapshot) => {
-                    codes.push({
-                        id: childSnapshot.key,
-                        ...childSnapshot.val()
-                    });
-                });
-                
-                codes.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                
-                codes.forEach(code => {
-                    const tile = document.createElement('div');
-                    tile.className = 'expansion-tile';
-                    tile.innerHTML = `
-                        <div class="expansion-header" onclick="toggleExpansion('${code.id}')">
-                            <div class="code-icon">📁</div>
-                            <div style="flex: 1; margin-left: 12px;">
-                                <div class="code-title">${code.title}</div>
-                                <div style="color: #00BFA5; font-size: 14px;">Price: $${code.price}</div>
-                            </div>
-                            <div id="arrow-${code.id}">▼</div>
-                        </div>
-                        <div class="expansion-content" id="content-${code.id}">
-                            <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px;">Code Content:</div>
-                            <div class="code-content-box">${code.codeText}</div>
-                            <button class="delete-btn" onclick="deleteCode('${code.id}')">
-                                🗑️ Delete Package
-                            </button>
-                        </div>
-                    `;
-                    adminList.appendChild(tile);
-                });
+                        <div id="arrow-${code.id}">▼</div>
+                    </div>
+                    <div class="expansion-content" id="content-${code.id}">
+                        <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px;">Code Content:</div>
+                        <div class="code-content-box">${code.codeText}</div>
+                        <button class="delete-btn" onclick="deleteCode('${code.id}')">
+                            🗑️ Delete Package
+                        </button>
+                    </div>
+                `;
+                adminList.appendChild(tile);
             });
         }
 
@@ -1245,8 +1204,10 @@ Price: $${code.price}`;
             
             if (confirmed) {
                 try {
-                    const codeRef = ref(database, `code_packages/${id}`);
-                    await remove(codeRef);
+                    const codes = JSON.parse(localStorage.getItem('code_packages') || '[]');
+                    const updatedCodes = codes.filter(code => code.id !== id);
+                    localStorage.setItem('code_packages', JSON.stringify(updatedCodes));
+                    loadAdminCodes();
                 } catch (error) {
                     alert('Error deleting code: ' + error.message);
                 }
@@ -1255,12 +1216,8 @@ Price: $${code.price}`;
 
         // Update package count
         function updatePackageCount() {
-            const codesRef = ref(database, 'code_packages');
-            
-            onValue(codesRef, (snapshot) => {
-                const count = snapshot.exists() ? snapshot.size : 0;
-                document.getElementById('packageCount').textContent = `${count} packages available`;
-            }, { onlyOnce: true });
+            const codes = JSON.parse(localStorage.getItem('code_packages') || '[]');
+            document.getElementById('packageCount').textContent = `${codes.length} packages available`;
         }
 
         // Confirm dialog
