@@ -130,7 +130,8 @@
         input[type="password"],
         input[type="text"],
         input[type="number"],
-        textarea {
+        textarea,
+        select {
             width: 100%;
             padding: 14px 14px 14px 40px;
             background: #2a2a2a;
@@ -141,8 +142,13 @@
             transition: border-color 0.3s;
         }
 
+        select {
+            padding-left: 14px;
+        }
+
         input:focus,
-        textarea:focus {
+        textarea:focus,
+        select:focus {
             outline: none;
             border-color: #00BFA5;
         }
@@ -283,6 +289,34 @@
             color: #00BFA5;
         }
 
+        /* UID Card */
+        .uid-card {
+            background: linear-gradient(135deg, #00BFA5 0%, #00897B 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(0, 191, 165, 0.3);
+        }
+
+        .uid-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 4px;
+        }
+
+        .uid-value {
+            font-size: 32px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            color: #ffffff;
+        }
+
+        .uid-instruction {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 8px;
+        }
+
         .code-list {
             margin: 20px 0;
         }
@@ -323,6 +357,11 @@
             margin-bottom: 12px;
         }
 
+        .code-price.free {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+        }
+
         .order-btn {
             width: 100%;
             padding: 14px;
@@ -342,6 +381,14 @@
 
         .order-btn:hover {
             background: #00a88e;
+        }
+
+        .order-btn.free-btn {
+            background: #4CAF50;
+        }
+
+        .order-btn.free-btn:hover {
+            background: #45a049;
         }
 
         .empty-state {
@@ -504,6 +551,16 @@
             color: #2196F3;
         }
 
+        .admin-icon-box.orange {
+            background: rgba(255, 152, 0, 0.2);
+            color: #ff9800;
+        }
+
+        .admin-icon-box.purple {
+            background: rgba(156, 39, 176, 0.2);
+            color: #9C27B0;
+        }
+
         .admin-details {
             flex: 1;
         }
@@ -584,6 +641,52 @@
             background: #b71c1c;
         }
 
+        /* UID List */
+        .uid-list-item {
+            background: #1E1E1E;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .uid-display {
+            font-size: 20px;
+            font-weight: bold;
+            color: #00BFA5;
+            letter-spacing: 2px;
+        }
+
+        .uid-codes-count {
+            font-size: 12px;
+            color: #999;
+        }
+
+        /* Checkbox List */
+        .checkbox-item {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            cursor: pointer;
+        }
+
+        .checkbox-label {
+            flex: 1;
+            cursor: pointer;
+        }
+
         /* Modal */
         .modal {
             display: none;
@@ -608,6 +711,8 @@
             padding: 24px;
             max-width: 400px;
             width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
         }
 
         .modal-header {
@@ -768,11 +873,18 @@
                 </div>
             </div>
 
+            <!-- UID Card -->
+            <div class="uid-card">
+                <div class="uid-label">Your Device UID</div>
+                <div class="uid-value" id="userUID"></div>
+                <div class="uid-instruction">Share this UID with admin to get free code packages</div>
+            </div>
+
             <div id="codeList" class="code-list"></div>
 
             <div class="footer">
                 <div>Real-time sync enabled</div>
-                <div style="margin-top: 4px; font-size: 10px;">v2.0.0</div>
+                <div style="margin-top: 4px; font-size: 10px;">v2.1.0</div>
             </div>
         </div>
     </div>
@@ -852,6 +964,28 @@
                 </div>
                 <div>▶</div>
             </div>
+
+            <div class="admin-card" onclick="showOrderUID()">
+                <div class="admin-icon-box orange">
+                    <div style="font-size: 28px;">🎁</div>
+                </div>
+                <div class="admin-details">
+                    <div class="admin-title">Order UID</div>
+                    <div class="admin-subtitle">Assign free codes to users</div>
+                </div>
+                <div>▶</div>
+            </div>
+
+            <div class="admin-card" onclick="showViewUIDs()">
+                <div class="admin-icon-box purple">
+                    <div style="font-size: 28px;">🔑</div>
+                </div>
+                <div class="admin-details">
+                    <div class="admin-title">View All UIDs</div>
+                    <div class="admin-subtitle" id="uidCount">0 UIDs registered</div>
+                </div>
+                <div>▶</div>
+            </div>
         </div>
     </div>
 
@@ -906,6 +1040,46 @@
         </div>
     </div>
 
+    <!-- Order UID Screen -->
+    <div id="orderUIDScreen" class="hidden">
+        <header class="app-header">
+            <button class="icon-btn" onclick="showAdminPanel()">◀️</button>
+            <h1>Order UID</h1>
+            <div></div>
+        </header>
+
+        <div class="container" style="max-width: 600px;">
+            <div id="orderUIDMessage"></div>
+
+            <form id="orderUIDForm">
+                <div class="form-group">
+                    <label>Enter User UID (4 digits)</label>
+                    <input type="text" id="uidInput" required placeholder="e.g., 1234" maxlength="4" pattern="[0-9]{4}" style="padding-left: 14px;">
+                </div>
+
+                <div class="form-group">
+                    <label>Select Code Packages to Give for Free</label>
+                    <div id="codeCheckboxList"></div>
+                </div>
+
+                <button type="submit" class="btn">✅ Assign Free Codes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- View UIDs Screen -->
+    <div id="viewUIDsScreen" class="hidden">
+        <header class="app-header">
+            <button class="icon-btn" onclick="showAdminPanel()">◀️</button>
+            <h1>All User UIDs</h1>
+            <div></div>
+        </header>
+
+        <div class="container">
+            <div id="uidList"></div>
+        </div>
+    </div>
+
     <!-- Admin Login Modal -->
     <div id="adminLoginModal" class="modal">
         <div class="modal-content">
@@ -944,12 +1118,11 @@
     </div>
 
     <script type="module">
-        // No Firebase needed - using localStorage
-
         // Global state
         let currentUser = null;
         let currentOrderCode = null;
         let confirmCallback = null;
+        let userUID = null;
 
         // Make functions globally available
         window.togglePassword = togglePassword;
@@ -963,16 +1136,38 @@
         window.showAdminPanel = showAdminPanel;
         window.showAddCode = showAddCode;
         window.showViewCodes = showViewCodes;
+        window.showOrderUID = showOrderUID;
+        window.showViewUIDs = showViewUIDs;
         window.logout = logout;
         window.closeConfirm = closeConfirm;
         window.deleteCode = deleteCode;
         window.toggleExpansion = toggleExpansion;
 
+        // Generate or get UID
+        function getOrCreateUID() {
+            let uid = localStorage.getItem('device_uid');
+            if (!uid) {
+                // Generate random 4-digit UID
+                uid = Math.floor(1000 + Math.random() * 9000).toString();
+                localStorage.setItem('device_uid', uid);
+                
+                // Store UID in global list
+                const allUIDs = JSON.parse(localStorage.getItem('all_uids') || '[]');
+                if (!allUIDs.includes(uid)) {
+                    allUIDs.push(uid);
+                    localStorage.setItem('all_uids', JSON.stringify(allUIDs));
+                }
+            }
+            return uid;
+        }
+
         // Initialize app - Load home directly
         setTimeout(() => {
             document.getElementById('loadingScreen').classList.add('hidden');
+            userUID = getOrCreateUID();
             currentUser = { email: 'Guest User' };
             document.getElementById('userEmail').textContent = 'Guest User';
+            document.getElementById('userUID').textContent = userUID;
             showHome();
             loadCodePackages();
         }, 500);
@@ -985,7 +1180,7 @@
 
         // Show/Hide screens
         function hideAllScreens() {
-            document.querySelectorAll('.auth-screen, #homeScreen, #orderScreen, #adminPanel, #addCodeScreen, #viewCodesScreen').forEach(el => {
+            document.querySelectorAll('.auth-screen, #homeScreen, #orderScreen, #adminPanel, #addCodeScreen, #viewCodesScreen, #orderUIDScreen, #viewUIDsScreen').forEach(el => {
                 el.classList.add('hidden');
             });
         }
@@ -1010,9 +1205,19 @@
         function showHome() {
             hideAllScreens();
             document.getElementById('homeScreen').classList.remove('hidden');
+            loadCodePackages();
         }
 
         function showOrder(code) {
+            // Check if this code is free for user
+            const uidOrders = JSON.parse(localStorage.getItem('uid_orders') || '{}');
+            const userFreeCodeIds = uidOrders[userUID] || [];
+            
+            if (userFreeCodeIds.includes(code.id)) {
+                alert('You already have this code for free! Check the code content below.');
+                return;
+            }
+            
             currentOrderCode = code;
             hideAllScreens();
             document.getElementById('orderScreen').classList.remove('hidden');
@@ -1020,7 +1225,7 @@
             document.getElementById('orderPrice').textContent = `$${code.price}`;
             
             const orderMessage = `Order Request
-Email: Guest User
+UID: ${userUID}
 Code Package: ${code.title}
 Price: $${code.price}`;
             
@@ -1031,6 +1236,7 @@ Price: $${code.price}`;
             hideAllScreens();
             document.getElementById('adminPanel').classList.remove('hidden');
             updatePackageCount();
+            updateUIDCount();
         }
 
         function showAddCode() {
@@ -1046,13 +1252,30 @@ Price: $${code.price}`;
             loadAdminCodes();
         }
 
-        // Login Form - Disabled
+        function showOrderUID() {
+            hideAllScreens();
+            document.getElementById('orderUIDScreen').classList.remove('hidden');
+            document.getElementById('orderUIDForm').reset();
+            document.getElementById('orderUIDMessage').innerHTML = '';
+            loadCodeCheckboxes();
+        }
 
-        // Signup Form - Disabled
+        function showViewUIDs() {
+            hideAllScreens();
+            document.getElementById('viewUIDsScreen').classList.remove('hidden');
+            loadAllUIDs();
+        }
 
         // Logout - Disabled
         async function logout() {
             // No logout needed
+        }
+
+        // Check if code is free for user
+        function isCodeFreeForUser(codeId) {
+            const uidOrders = JSON.parse(localStorage.getItem('uid_orders') || '{}');
+            const userFreeCodeIds = uidOrders[userUID] || [];
+            return userFreeCodeIds.includes(codeId);
         }
 
         // Load code packages from localStorage
@@ -1072,17 +1295,25 @@ Price: $${code.price}`;
             }
             
             codes.forEach(code => {
+                const isFree = isCodeFreeForUser(code.id);
                 const card = document.createElement('div');
                 card.className = 'code-card';
                 card.innerHTML = `
                     <div class="code-header">
-                        <div class="code-icon">📁</div>
+                        <div class="code-icon">${isFree ? '🎁' : '📁'}</div>
                         <div class="code-title">${code.title}</div>
                     </div>
-                    <div class="code-price">$${code.price}</div>
-                    <button class="order-btn" onclick="showOrder(${JSON.stringify(code).replace(/"/g, '&quot;')})">
-                        🛒 Order Now
-                    </button>
+                    <div class="code-price ${isFree ? 'free' : ''}">${isFree ? 'FREE' : '$' + code.price}</div>
+                    ${isFree ? `
+                        <div class="code-content-box">${code.codeText}</div>
+                        <div style="padding: 12px; background: rgba(76, 175, 80, 0.1); border-radius: 8px; color: #4CAF50; text-align: center; font-size: 14px;">
+                            ✅ You have this code for free!
+                        </div>
+                    ` : `
+                        <button class="order-btn" onclick="showOrder(${JSON.stringify(code).replace(/"/g, '&quot;')})">
+                            🛒 Order Now
+                        </button>
+                    `}
                 `;
                 codeList.appendChild(card);
             });
@@ -1214,10 +1445,132 @@ Price: $${code.price}`;
             }
         }
 
+        // Load code checkboxes for UID ordering
+        function loadCodeCheckboxes() {
+            const codes = JSON.parse(localStorage.getItem('code_packages') || '[]');
+            const checkboxList = document.getElementById('codeCheckboxList');
+            checkboxList.innerHTML = '';
+            
+            if (codes.length === 0) {
+                checkboxList.innerHTML = '<div style="color: #999; padding: 12px;">No code packages available</div>';
+                return;
+            }
+            
+            codes.forEach(code => {
+                const item = document.createElement('div');
+                item.className = 'checkbox-item';
+                item.innerHTML = `
+                    <input type="checkbox" id="code-${code.id}" value="${code.id}">
+                    <label class="checkbox-label" for="code-${code.id}">
+                        <div style="font-weight: bold;">${code.title}</div>
+                        <div style="font-size: 12px; color: #999;">Price: $${code.price}</div>
+                    </label>
+                `;
+                checkboxList.appendChild(item);
+            });
+        }
+
+        // Order UID Form
+        document.getElementById('orderUIDForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const uid = document.getElementById('uidInput').value.trim();
+            const messageDiv = document.getElementById('orderUIDMessage');
+            
+            // Validate UID
+            if (!/^\d{4}$/.test(uid)) {
+                messageDiv.innerHTML = '<div class="error-message">UID must be exactly 4 digits</div>';
+                return;
+            }
+            
+            // Get selected codes
+            const checkboxes = document.querySelectorAll('#codeCheckboxList input[type="checkbox"]:checked');
+            if (checkboxes.length === 0) {
+                messageDiv.innerHTML = '<div class="error-message">Please select at least one code package</div>';
+                return;
+            }
+            
+            const selectedCodeIds = Array.from(checkboxes).map(cb => cb.value);
+            
+            try {
+                // Get existing UID orders
+                const uidOrders = JSON.parse(localStorage.getItem('uid_orders') || '{}');
+                
+                // Add or update codes for this UID
+                if (!uidOrders[uid]) {
+                    uidOrders[uid] = [];
+                }
+                
+                selectedCodeIds.forEach(codeId => {
+                    if (!uidOrders[uid].includes(codeId)) {
+                        uidOrders[uid].push(codeId);
+                    }
+                });
+                
+                // Save
+                localStorage.setItem('uid_orders', JSON.stringify(uidOrders));
+                
+                // Add to all UIDs list if not exists
+                const allUIDs = JSON.parse(localStorage.getItem('all_uids') || '[]');
+                if (!allUIDs.includes(uid)) {
+                    allUIDs.push(uid);
+                    localStorage.setItem('all_uids', JSON.stringify(allUIDs));
+                }
+                
+                messageDiv.innerHTML = '<div class="success-message">Free codes assigned successfully to UID: ' + uid + '</div>';
+                document.getElementById('orderUIDForm').reset();
+                loadCodeCheckboxes();
+                
+                setTimeout(() => {
+                    showAdminPanel();
+                }, 2000);
+            } catch (error) {
+                messageDiv.innerHTML = `<div class="error-message">Error: ${error.message}</div>`;
+            }
+        });
+
+        // Load all UIDs
+        function loadAllUIDs() {
+            const allUIDs = JSON.parse(localStorage.getItem('all_uids') || '[]');
+            const uidOrders = JSON.parse(localStorage.getItem('uid_orders') || '{}');
+            const uidListDiv = document.getElementById('uidList');
+            uidListDiv.innerHTML = '';
+            
+            if (allUIDs.length === 0) {
+                uidListDiv.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🔑</div>
+                        <div>No UIDs registered yet</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            allUIDs.forEach(uid => {
+                const freeCodesCount = (uidOrders[uid] || []).length;
+                const item = document.createElement('div');
+                item.className = 'uid-list-item';
+                item.innerHTML = `
+                    <div>
+                        <div class="uid-display">${uid}</div>
+                        <div class="uid-codes-count">${freeCodesCount} free code${freeCodesCount !== 1 ? 's' : ''}</div>
+                    </div>
+                    <div style="color: #00BFA5; font-size: 20px;">▶</div>
+                `;
+                uidListDiv.appendChild(item);
+            });
+        }
+
         // Update package count
         function updatePackageCount() {
             const codes = JSON.parse(localStorage.getItem('code_packages') || '[]');
             document.getElementById('packageCount').textContent = `${codes.length} packages available`;
+        }
+
+        // Update UID count
+        function updateUIDCount() {
+            const allUIDs = JSON.parse(localStorage.getItem('all_uids') || '[]');
+            document.getElementById('uidCount').textContent = `${allUIDs.length} UIDs registered`;
         }
 
         // Confirm dialog
