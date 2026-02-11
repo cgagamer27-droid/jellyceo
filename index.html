@@ -883,8 +883,8 @@
             <div id="codeList" class="code-list"></div>
 
             <div class="footer">
-                <div>Real-time sync enabled</div>
-                <div style="margin-top: 4px; font-size: 10px;">v2.1.0</div>
+                <div>🔄 Real-time Firebase sync enabled</div>
+                <div style="margin-top: 4px; font-size: 10px;">v3.0.0</div>
             </div>
         </div>
     </div>
@@ -1117,7 +1117,20 @@
         </div>
     </div>
 
-    <script type="module">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            databaseURL: "https://codejelly-add9c-default-rtdb.firebaseio.com/"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
         // Global state
         let currentUser = null;
         let currentOrderCode = null;
@@ -1151,17 +1164,16 @@
                 uid = Math.floor(1000 + Math.random() * 9000).toString();
                 localStorage.setItem('device_uid', uid);
                 
-                // Store UID in global list
-                const allUIDs = JSON.parse(localStorage.getItem('all_uids') || '[]');
-                if (!allUIDs.includes(uid)) {
-                    allUIDs.push(uid);
-                    localStorage.setItem('all_uids', JSON.stringify(allUIDs));
-                }
+                // Store UID in Firebase
+                database.ref('uids/' + uid).set({
+                    uid: uid,
+                    timestamp: Date.now()
+                });
             }
             return uid;
         }
 
-        // Initialize app - Load home directly
+        // Initialize app
         setTimeout(() => {
             document.getElementById('loadingScreen').classList.add('hidden');
             userUID = getOrCreateUID();
@@ -1169,8 +1181,33 @@
             document.getElementById('userEmail').textContent = 'Guest User';
             document.getElementById('userUID').textContent = userUID;
             showHome();
-            loadCodePackages();
+            setupFirebaseListeners();
         }, 500);
+
+        // Setup Firebase real-time listeners
+        function setupFirebaseListeners() {
+            // Listen for code packages changes
+            database.ref('code_packages').on('value', (snapshot) => {
+                loadCodePackages();
+            });
+
+            // Listen for UID orders changes
+            database.ref('uid_orders').on('value', (snapshot) => {
+                if (document.getElementById('homeScreen').classList.contains('hidden') === false) {
+                    loadCodePackages();
+                }
+            });
+
+            // Listen for UIDs changes
+            database.ref('uids').on('value', (snapshot) => {
+                if (document.getElementById('viewUIDsScreen').classList.contains('hidden') === false) {
+                    loadAllUIDs();
+                }
+                if (document.getElementById('adminPanel').classList.contains('hidden') === false) {
+                    updateUIDCount();
+                }
+            });
+        }
 
         // Toggle password visibility
         function togglePassword(inputId) {
@@ -1209,15 +1246,6 @@
         }
 
         function showOrder(code) {
-            // Check if this code is free for user
-            const uidOrders = JSON.parse(localStorage.getItem('uid_orders') || '{}');
-            const userFreeCodeIds = uidOrders[userUID] || [];
-            
-            if (userFreeCodeIds.includes(code.id)) {
-                alert('You already have this code for free! Check the code content below.');
-                return;
-            }
-            
             currentOrderCode = code;
             hideAllScreens();
             document.getElementById('orderScreen').classList.remove('hidden');
@@ -1272,51 +1300,67 @@ Price: $${code.price}`;
         }
 
         // Check if code is free for user
-        function isCodeFreeForUser(codeId) {
-            const uidOrders = JSON.parse(localStorage.getItem('uid_orders') || '{}');
-            const userFreeCodeIds = uidOrders[userUID] || [];
-            return userFreeCodeIds.includes(codeId);
+        async function isCodeFreeForUser(codeId) {
+            try {
+                const snapshot = await database.ref('uid_orders/' + userUID).once('value');
+                const userFreeCodeIds = snapshot.val() || [];
+                return userFreeCodeIds.includes(codeId);
+            } catch (error) {
+                console.error('Error checking free code:', error);
+                return false;
+            }
         }
 
-        // Load code packages from localStorage
-        function loadCodePackages() {
-            const codes = JSON.parse(localStorage.getItem('code_packages') || '[]');
-            const codeList = document.getElementById('codeList');
-            codeList.innerHTML = '';
-            
-            if (codes.length === 0) {
-                codeList.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon">📦</div>
-                        <div>No code packages available yet</div>
-                    </div>
-                `;
-                return;
-            }
-            
-            codes.forEach(code => {
-                const isFree = isCodeFreeForUser(code.id);
-                const card = document.createElement('div');
-                card.className = 'code-card';
-                card.innerHTML = `
-                    <div class="code-header">
-                        <div class="code-icon">${isFree ? '🎁' : '📁'}</div>
-                        <div class="code-title">${code.title}</div>
-                    </div>
-                    <div class="code-price ${isFree ? 'free' : ''}">${isFree ? 'FREE' : '$' + code.price}</div>
-                    ${isFree ? `
-                        <div class="code-content-box">${code.codeText}</div>
-                        <div style="padding: 12px; background: rgba(76, 175, 80, 0.1); border-radius: 8px; color: #4CAF50; text-align: center; font-size: 14px;">
-                            ✅ You have this code for free!
+        // Load code packages from Firebase
+        async function loadCodePackages() {
+            try {
+                const snapshot = await database.ref('code_packages').once('value');
+                const codesObj = snapshot.val() || {};
+                const codes = Object.values(codesObj).sort((a, b) => b.timestamp - a.timestamp);
+                
+                const codeList = document.getElementById('codeList');
+                codeList.innerHTML = '';
+                
+                if (codes.length === 0) {
+                    codeList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📦</div>
+                            <div>No code packages available yet</div>
                         </div>
-                    ` : `
-                        <button class="order-btn" onclick="showOrder(${JSON.stringify(code).replace(/"/g, '&quot;')})">
-                            🛒 Order Now
-                        </button>
-                    `}
-                `;
-                codeList.appendChild(card);
-            });
+                    `;
+                    return;
+                }
+                
+                // Check free codes for user
+                const uidOrdersSnapshot = await database.ref('uid_orders/' + userUID).once('value');
+                const userFreeCodeIds = uidOrdersSnapshot.val() || [];
+                
+                for (const code of codes) {
+                    const isFree = userFreeCodeIds.includes(code.id);
+                    const card = document.createElement('div');
+                    card.className = 'code-card';
+                    card.innerHTML = `
+                        <div class="code-header">
+                            <div class="code-icon">${isFree ? '🎁' : '📁'}</div>
+                            <div class="code-title">${code.title}</div>
+                        </div>
+                        <div class="code-price ${isFree ? 'free' : ''}">${isFree ? 'FREE' : '$' + code.price}</div>
+                        ${isFree ? `
+                            <div class="code-content-box">${code.codeText}</div>
+                            <div style="padding: 12px; background: rgba(76, 175, 80, 0.1); border-radius: 8px; color: #4CAF50; text-align: center; font-size: 14px;">
+                                ✅ You have this code for free!
+                            </div>
+                        ` : `
+                            <button class="order-btn" onclick="showOrder(${JSON.stringify(code).replace(/"/g, '&quot;')})">
+                                🛒 Order Now
+                            </button>
+                        `}
+                    `;
+                    codeList.appendChild(card);
+                }
+            } catch (error) {
+                console.error('Error loading code packages:', error);
+            }
         }
 
         // Admin Login
@@ -1352,8 +1396,6 @@ Price: $${code.price}`;
             const messageDiv = document.getElementById('addCodeMessage');
             
             try {
-                const codes = JSON.parse(localStorage.getItem('code_packages') || '[]');
-                
                 const newCode = {
                     id: Date.now().toString(),
                     title: title,
@@ -1362,8 +1404,8 @@ Price: $${code.price}`;
                     timestamp: Date.now()
                 };
                 
-                codes.unshift(newCode);
-                localStorage.setItem('code_packages', JSON.stringify(codes));
+                // Save to Firebase
+                await database.ref('code_packages/' + newCode.id).set(newCode);
                 
                 messageDiv.innerHTML = '<div class="success-message">Code package added successfully!</div>';
                 document.getElementById('addCodeForm').reset();
@@ -1377,43 +1419,50 @@ Price: $${code.price}`;
         });
 
         // Load admin codes
-        function loadAdminCodes() {
-            const codes = JSON.parse(localStorage.getItem('code_packages') || '[]');
-            const adminList = document.getElementById('adminCodeList');
-            adminList.innerHTML = '';
-            
-            if (codes.length === 0) {
-                adminList.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon">📦</div>
-                        <div>No code packages added yet</div>
-                    </div>
-                `;
-                return;
-            }
-            
-            codes.forEach(code => {
-                const tile = document.createElement('div');
-                tile.className = 'expansion-tile';
-                tile.innerHTML = `
-                    <div class="expansion-header" onclick="toggleExpansion('${code.id}')">
-                        <div class="code-icon">📁</div>
-                        <div style="flex: 1; margin-left: 12px;">
-                            <div class="code-title">${code.title}</div>
-                            <div style="color: #00BFA5; font-size: 14px;">Price: $${code.price}</div>
+        async function loadAdminCodes() {
+            try {
+                const snapshot = await database.ref('code_packages').once('value');
+                const codesObj = snapshot.val() || {};
+                const codes = Object.values(codesObj).sort((a, b) => b.timestamp - a.timestamp);
+                
+                const adminList = document.getElementById('adminCodeList');
+                adminList.innerHTML = '';
+                
+                if (codes.length === 0) {
+                    adminList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📦</div>
+                            <div>No code packages added yet</div>
                         </div>
-                        <div id="arrow-${code.id}">▼</div>
-                    </div>
-                    <div class="expansion-content" id="content-${code.id}">
-                        <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px;">Code Content:</div>
-                        <div class="code-content-box">${code.codeText}</div>
-                        <button class="delete-btn" onclick="deleteCode('${code.id}')">
-                            🗑️ Delete Package
-                        </button>
-                    </div>
-                `;
-                adminList.appendChild(tile);
-            });
+                    `;
+                    return;
+                }
+                
+                codes.forEach(code => {
+                    const tile = document.createElement('div');
+                    tile.className = 'expansion-tile';
+                    tile.innerHTML = `
+                        <div class="expansion-header" onclick="toggleExpansion('${code.id}')">
+                            <div class="code-icon">📁</div>
+                            <div style="flex: 1; margin-left: 12px;">
+                                <div class="code-title">${code.title}</div>
+                                <div style="color: #00BFA5; font-size: 14px;">Price: $${code.price}</div>
+                            </div>
+                            <div id="arrow-${code.id}">▼</div>
+                        </div>
+                        <div class="expansion-content" id="content-${code.id}">
+                            <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px;">Code Content:</div>
+                            <div class="code-content-box">${code.codeText}</div>
+                            <button class="delete-btn" onclick="deleteCode('${code.id}')">
+                                🗑️ Delete Package
+                            </button>
+                        </div>
+                    `;
+                    adminList.appendChild(tile);
+                });
+            } catch (error) {
+                console.error('Error loading admin codes:', error);
+            }
         }
 
         function toggleExpansion(id) {
@@ -1435,9 +1484,7 @@ Price: $${code.price}`;
             
             if (confirmed) {
                 try {
-                    const codes = JSON.parse(localStorage.getItem('code_packages') || '[]');
-                    const updatedCodes = codes.filter(code => code.id !== id);
-                    localStorage.setItem('code_packages', JSON.stringify(updatedCodes));
+                    await database.ref('code_packages/' + id).remove();
                     loadAdminCodes();
                 } catch (error) {
                     alert('Error deleting code: ' + error.message);
@@ -1446,28 +1493,35 @@ Price: $${code.price}`;
         }
 
         // Load code checkboxes for UID ordering
-        function loadCodeCheckboxes() {
-            const codes = JSON.parse(localStorage.getItem('code_packages') || '[]');
-            const checkboxList = document.getElementById('codeCheckboxList');
-            checkboxList.innerHTML = '';
-            
-            if (codes.length === 0) {
-                checkboxList.innerHTML = '<div style="color: #999; padding: 12px;">No code packages available</div>';
-                return;
+        async function loadCodeCheckboxes() {
+            try {
+                const snapshot = await database.ref('code_packages').once('value');
+                const codesObj = snapshot.val() || {};
+                const codes = Object.values(codesObj).sort((a, b) => b.timestamp - a.timestamp);
+                
+                const checkboxList = document.getElementById('codeCheckboxList');
+                checkboxList.innerHTML = '';
+                
+                if (codes.length === 0) {
+                    checkboxList.innerHTML = '<div style="color: #999; padding: 12px;">No code packages available</div>';
+                    return;
+                }
+                
+                codes.forEach(code => {
+                    const item = document.createElement('div');
+                    item.className = 'checkbox-item';
+                    item.innerHTML = `
+                        <input type="checkbox" id="code-${code.id}" value="${code.id}">
+                        <label class="checkbox-label" for="code-${code.id}">
+                            <div style="font-weight: bold;">${code.title}</div>
+                            <div style="font-size: 12px; color: #999;">Price: $${code.price}</div>
+                        </label>
+                    `;
+                    checkboxList.appendChild(item);
+                });
+            } catch (error) {
+                console.error('Error loading code checkboxes:', error);
             }
-            
-            codes.forEach(code => {
-                const item = document.createElement('div');
-                item.className = 'checkbox-item';
-                item.innerHTML = `
-                    <input type="checkbox" id="code-${code.id}" value="${code.id}">
-                    <label class="checkbox-label" for="code-${code.id}">
-                        <div style="font-weight: bold;">${code.title}</div>
-                        <div style="font-size: 12px; color: #999;">Price: $${code.price}</div>
-                    </label>
-                `;
-                checkboxList.appendChild(item);
-            });
         }
 
         // Order UID Form
@@ -1493,29 +1547,21 @@ Price: $${code.price}`;
             const selectedCodeIds = Array.from(checkboxes).map(cb => cb.value);
             
             try {
-                // Get existing UID orders
-                const uidOrders = JSON.parse(localStorage.getItem('uid_orders') || '{}');
+                // Get existing codes for this UID
+                const snapshot = await database.ref('uid_orders/' + uid).once('value');
+                const existingCodes = snapshot.val() || [];
                 
-                // Add or update codes for this UID
-                if (!uidOrders[uid]) {
-                    uidOrders[uid] = [];
-                }
+                // Merge with new codes
+                const updatedCodes = [...new Set([...existingCodes, ...selectedCodeIds])];
                 
-                selectedCodeIds.forEach(codeId => {
-                    if (!uidOrders[uid].includes(codeId)) {
-                        uidOrders[uid].push(codeId);
-                    }
+                // Save to Firebase
+                await database.ref('uid_orders/' + uid).set(updatedCodes);
+                
+                // Ensure UID is registered
+                await database.ref('uids/' + uid).set({
+                    uid: uid,
+                    timestamp: Date.now()
                 });
-                
-                // Save
-                localStorage.setItem('uid_orders', JSON.stringify(uidOrders));
-                
-                // Add to all UIDs list if not exists
-                const allUIDs = JSON.parse(localStorage.getItem('all_uids') || '[]');
-                if (!allUIDs.includes(uid)) {
-                    allUIDs.push(uid);
-                    localStorage.setItem('all_uids', JSON.stringify(allUIDs));
-                }
                 
                 messageDiv.innerHTML = '<div class="success-message">Free codes assigned successfully to UID: ' + uid + '</div>';
                 document.getElementById('orderUIDForm').reset();
@@ -1530,47 +1576,70 @@ Price: $${code.price}`;
         });
 
         // Load all UIDs
-        function loadAllUIDs() {
-            const allUIDs = JSON.parse(localStorage.getItem('all_uids') || '[]');
-            const uidOrders = JSON.parse(localStorage.getItem('uid_orders') || '{}');
-            const uidListDiv = document.getElementById('uidList');
-            uidListDiv.innerHTML = '';
-            
-            if (allUIDs.length === 0) {
-                uidListDiv.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon">🔑</div>
-                        <div>No UIDs registered yet</div>
-                    </div>
-                `;
-                return;
+        async function loadAllUIDs() {
+            try {
+                const [uidsSnapshot, ordersSnapshot] = await Promise.all([
+                    database.ref('uids').once('value'),
+                    database.ref('uid_orders').once('value')
+                ]);
+                
+                const uidsObj = uidsSnapshot.val() || {};
+                const ordersObj = ordersSnapshot.val() || {};
+                
+                const allUIDs = Object.keys(uidsObj);
+                const uidListDiv = document.getElementById('uidList');
+                uidListDiv.innerHTML = '';
+                
+                if (allUIDs.length === 0) {
+                    uidListDiv.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">🔑</div>
+                            <div>No UIDs registered yet</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                allUIDs.forEach(uid => {
+                    const freeCodesCount = (ordersObj[uid] || []).length;
+                    const item = document.createElement('div');
+                    item.className = 'uid-list-item';
+                    item.innerHTML = `
+                        <div>
+                            <div class="uid-display">${uid}</div>
+                            <div class="uid-codes-count">${freeCodesCount} free code${freeCodesCount !== 1 ? 's' : ''}</div>
+                        </div>
+                        <div style="color: #00BFA5; font-size: 20px;">▶</div>
+                    `;
+                    uidListDiv.appendChild(item);
+                });
+            } catch (error) {
+                console.error('Error loading UIDs:', error);
             }
-            
-            allUIDs.forEach(uid => {
-                const freeCodesCount = (uidOrders[uid] || []).length;
-                const item = document.createElement('div');
-                item.className = 'uid-list-item';
-                item.innerHTML = `
-                    <div>
-                        <div class="uid-display">${uid}</div>
-                        <div class="uid-codes-count">${freeCodesCount} free code${freeCodesCount !== 1 ? 's' : ''}</div>
-                    </div>
-                    <div style="color: #00BFA5; font-size: 20px;">▶</div>
-                `;
-                uidListDiv.appendChild(item);
-            });
         }
 
         // Update package count
-        function updatePackageCount() {
-            const codes = JSON.parse(localStorage.getItem('code_packages') || '[]');
-            document.getElementById('packageCount').textContent = `${codes.length} packages available`;
+        async function updatePackageCount() {
+            try {
+                const snapshot = await database.ref('code_packages').once('value');
+                const codesObj = snapshot.val() || {};
+                const count = Object.keys(codesObj).length;
+                document.getElementById('packageCount').textContent = `${count} packages available`;
+            } catch (error) {
+                console.error('Error updating package count:', error);
+            }
         }
 
         // Update UID count
-        function updateUIDCount() {
-            const allUIDs = JSON.parse(localStorage.getItem('all_uids') || '[]');
-            document.getElementById('uidCount').textContent = `${allUIDs.length} UIDs registered`;
+        async function updateUIDCount() {
+            try {
+                const snapshot = await database.ref('uids').once('value');
+                const uidsObj = snapshot.val() || {};
+                const count = Object.keys(uidsObj).length;
+                document.getElementById('uidCount').textContent = `${count} UIDs registered`;
+            } catch (error) {
+                console.error('Error updating UID count:', error);
+            }
         }
 
         // Confirm dialog
